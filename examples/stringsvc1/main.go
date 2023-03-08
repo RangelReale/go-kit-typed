@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-kit/kit/endpoint"
-	httptransport "github.com/go-kit/kit/transport/http"
+	tendpoint "github.com/RangelReale/go-kit-typed/endpoint"
+	thttptransport "github.com/RangelReale/go-kit-typed/transport/http"
 )
 
 // StringService provides operations on strings.
@@ -54,9 +54,8 @@ type countResponse struct {
 }
 
 // Endpoints are a primary abstraction in go-kit. An endpoint represents a single RPC (method in our service interface)
-func makeUppercaseEndpoint(svc StringService) endpoint.Endpoint {
-	return func(_ context.Context, request interface{}) (interface{}, error) {
-		req := request.(uppercaseRequest)
+func makeUppercaseEndpoint(svc StringService) tendpoint.Endpoint[uppercaseRequest, uppercaseResponse] {
+	return func(_ context.Context, req uppercaseRequest) (uppercaseResponse, error) {
 		v, err := svc.Uppercase(req.S)
 		if err != nil {
 			return uppercaseResponse{v, err.Error()}, nil
@@ -65,9 +64,8 @@ func makeUppercaseEndpoint(svc StringService) endpoint.Endpoint {
 	}
 }
 
-func makeCountEndpoint(svc StringService) endpoint.Endpoint {
-	return func(_ context.Context, request interface{}) (interface{}, error) {
-		req := request.(countRequest)
+func makeCountEndpoint(svc StringService) tendpoint.Endpoint[countRequest, countResponse] {
+	return func(_ context.Context, req countRequest) (countResponse, error) {
 		v := svc.Count(req.S)
 		return countResponse{v}, nil
 	}
@@ -77,16 +75,16 @@ func makeCountEndpoint(svc StringService) endpoint.Endpoint {
 func main() {
 	svc := stringService{}
 
-	uppercaseHandler := httptransport.NewServer(
+	uppercaseHandler := thttptransport.NewServer(
 		makeUppercaseEndpoint(svc),
 		decodeUppercaseRequest,
-		encodeResponse,
+		thttptransport.EncodeResponseFuncAdapter[uppercaseResponse](encodeResponse),
 	)
 
-	countHandler := httptransport.NewServer(
+	countHandler := thttptransport.NewServer(
 		makeCountEndpoint(svc),
 		decodeCountRequest,
-		encodeResponse,
+		thttptransport.EncodeResponseFuncAdapter[countResponse](encodeResponse),
 	)
 
 	http.Handle("/uppercase", uppercaseHandler)
@@ -94,18 +92,18 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func decodeUppercaseRequest(_ context.Context, r *http.Request) (interface{}, error) {
+func decodeUppercaseRequest(_ context.Context, r *http.Request) (uppercaseRequest, error) {
 	var request uppercaseRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
+		return uppercaseRequest{}, err
 	}
 	return request, nil
 }
 
-func decodeCountRequest(_ context.Context, r *http.Request) (interface{}, error) {
+func decodeCountRequest(_ context.Context, r *http.Request) (countRequest, error) {
 	var request countRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
+		return countRequest{}, err
 	}
 	return request, nil
 }
