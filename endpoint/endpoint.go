@@ -10,6 +10,7 @@ import (
 // It represents a single RPC method.
 type Endpoint[Req any, Resp any] func(ctx context.Context, request Req) (response Resp, err error)
 
+// EndpointAdapter is an adapter from a standard go-kit endpoint to the typed version.
 func EndpointAdapter[Req any, Resp any](endpoint gokitendpoint.Endpoint) Endpoint[Req, Resp] {
 	return func(ctx context.Context, request Req) (Resp, error) {
 		resp, err := endpoint(ctx, request)
@@ -31,7 +32,7 @@ func EndpointAdapter[Req any, Resp any](endpoint gokitendpoint.Endpoint) Endpoin
 	}
 }
 
-// MiddlewareAdapter is an adapter for middlewares and generic endpoints
+// MiddlewareAdapter is an adapter for middlewares and generic endpoints.
 func MiddlewareAdapter[Req any, Resp any](middleware gokitendpoint.Middleware,
 	endpoint Endpoint[Req, Resp]) Endpoint[Req, Resp] {
 	return func(ctx context.Context, req Req) (Resp, error) {
