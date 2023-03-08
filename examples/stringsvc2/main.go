@@ -7,9 +7,9 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	thttptransport "github.com/RangelReale/go-kit-typed/transport/http"
 	"github.com/go-kit/kit/log"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
-	httptransport "github.com/go-kit/kit/transport/http"
 )
 
 func main() {
@@ -40,16 +40,16 @@ func main() {
 	svc = loggingMiddleware{logger, svc}
 	svc = instrumentingMiddleware{requestCount, requestLatency, countResult, svc}
 
-	uppercaseHandler := httptransport.NewServer(
+	uppercaseHandler := thttptransport.NewServer(
 		makeUppercaseEndpoint(svc),
 		decodeUppercaseRequest,
-		encodeResponse,
+		thttptransport.EncodeResponseFuncAdapter[uppercaseResponse](encodeResponse),
 	)
 
-	countHandler := httptransport.NewServer(
+	countHandler := thttptransport.NewServer(
 		makeCountEndpoint(svc),
 		decodeCountRequest,
-		encodeResponse,
+		thttptransport.EncodeResponseFuncAdapter[countResponse](encodeResponse),
 	)
 
 	http.Handle("/uppercase", uppercaseHandler)
