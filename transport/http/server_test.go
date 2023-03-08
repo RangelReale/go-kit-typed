@@ -10,16 +10,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/RangelReale/go-kit-typed/endpoint"
 	httptransport "github.com/RangelReale/go-kit-typed/transport/http"
 	gokitendpoint "github.com/go-kit/kit/endpoint"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 )
 
+type serverReq struct {
+	req string
+}
+
+type serverResp struct {
+	resp string
+}
+
 func TestServerBadDecode(t *testing.T) {
-	handler := httptransport.NewServer[any, any](
-		func(context.Context, interface{}) (interface{}, error) { return struct{}{}, nil },
-		func(context.Context, *http.Request) (interface{}, error) { return struct{}{}, errors.New("dang") },
-		func(context.Context, http.ResponseWriter, interface{}) error { return nil },
+	handler := httptransport.NewServer[serverReq, serverResp](
+		func(context.Context, serverReq) (serverResp, error) { return serverResp{"resp1"}, nil },
+		func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, errors.New("dang") },
+		func(context.Context, http.ResponseWriter, serverResp) error { return nil },
 	)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -30,10 +39,10 @@ func TestServerBadDecode(t *testing.T) {
 }
 
 func TestServerBadEndpoint(t *testing.T) {
-	handler := httptransport.NewServer[any, any](
-		func(context.Context, interface{}) (interface{}, error) { return struct{}{}, errors.New("dang") },
-		func(context.Context, *http.Request) (interface{}, error) { return struct{}{}, nil },
-		func(context.Context, http.ResponseWriter, interface{}) error { return nil },
+	handler := httptransport.NewServer[serverReq, serverResp](
+		func(context.Context, serverReq) (serverResp, error) { return serverResp{"req1"}, errors.New("dang") },
+		func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, nil },
+		func(context.Context, http.ResponseWriter, serverResp) error { return nil },
 	)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -44,10 +53,10 @@ func TestServerBadEndpoint(t *testing.T) {
 }
 
 func TestServerBadEncode(t *testing.T) {
-	handler := httptransport.NewServer[any, any](
-		func(context.Context, interface{}) (interface{}, error) { return struct{}{}, nil },
-		func(context.Context, *http.Request) (interface{}, error) { return struct{}{}, nil },
-		func(context.Context, http.ResponseWriter, interface{}) error { return errors.New("dang") },
+	handler := httptransport.NewServer[serverReq, serverResp](
+		func(context.Context, serverReq) (serverResp, error) { return serverResp{"resp1"}, nil },
+		func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, nil },
+		func(context.Context, http.ResponseWriter, serverResp) error { return errors.New("dang") },
 	)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -65,10 +74,10 @@ func TestServerErrorEncoder(t *testing.T) {
 		}
 		return http.StatusInternalServerError
 	}
-	handler := httptransport.NewServer[any, any](
-		func(context.Context, interface{}) (interface{}, error) { return struct{}{}, errTeapot },
-		func(context.Context, *http.Request) (interface{}, error) { return struct{}{}, nil },
-		func(context.Context, http.ResponseWriter, interface{}) error { return nil },
+	handler := httptransport.NewServer[serverReq, serverResp](
+		func(context.Context, serverReq) (serverResp, error) { return serverResp{"resp1"}, errTeapot },
+		func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, nil },
+		func(context.Context, http.ResponseWriter, serverResp) error { return nil },
 		gokithttptransport.ServerErrorEncoder(func(_ context.Context, err error, w http.ResponseWriter) { w.WriteHeader(code(err)) }),
 	)
 	server := httptest.NewServer(handler)
@@ -98,12 +107,12 @@ func TestMultipleServerBefore(t *testing.T) {
 		responseBody = "go eat a fly ugly\n"
 		done         = make(chan struct{})
 	)
-	handler := httptransport.NewServer[any, any](
-		gokitendpoint.Nop,
-		func(context.Context, *http.Request) (interface{}, error) {
-			return struct{}{}, nil
+	handler := httptransport.NewServer[serverReq, serverResp](
+		endpoint.EndpointAdapter[serverReq, serverResp](gokitendpoint.Nop),
+		func(context.Context, *http.Request) (serverReq, error) {
+			return serverReq{"req1"}, nil
 		},
-		func(_ context.Context, w http.ResponseWriter, _ interface{}) error {
+		func(_ context.Context, w http.ResponseWriter, _ serverResp) error {
 			w.Header().Set(headerKey, headerVal)
 			w.WriteHeader(statusCode)
 			w.Write([]byte(responseBody))
@@ -143,12 +152,12 @@ func TestMultipleServerAfter(t *testing.T) {
 		responseBody = "go eat a fly ugly\n"
 		done         = make(chan struct{})
 	)
-	handler := httptransport.NewServer[any, any](
-		gokitendpoint.Nop,
-		func(context.Context, *http.Request) (interface{}, error) {
-			return struct{}{}, nil
+	handler := httptransport.NewServer[serverReq, any](
+		endpoint.EndpointAdapter[serverReq, any](gokitendpoint.Nop),
+		func(context.Context, *http.Request) (serverReq, error) {
+			return serverReq{"req1"}, nil
 		},
-		func(_ context.Context, w http.ResponseWriter, _ interface{}) error {
+		func(_ context.Context, w http.ResponseWriter, _ any) error {
 			w.Header().Set(headerKey, headerVal)
 			w.WriteHeader(statusCode)
 			w.Write([]byte(responseBody))
@@ -188,12 +197,12 @@ func TestServerFinalizer(t *testing.T) {
 		responseBody = "go eat a fly ugly\n"
 		done         = make(chan struct{})
 	)
-	handler := httptransport.NewServer[any, any](
-		gokitendpoint.Nop,
-		func(context.Context, *http.Request) (interface{}, error) {
-			return struct{}{}, nil
+	handler := httptransport.NewServer[serverReq, any](
+		endpoint.EndpointAdapter[serverReq, any](gokitendpoint.Nop),
+		func(context.Context, *http.Request) (serverReq, error) {
+			return serverReq{"req1"}, nil
 		},
-		func(_ context.Context, w http.ResponseWriter, _ interface{}) error {
+		func(_ context.Context, w http.ResponseWriter, _ any) error {
 			w.Header().Set(headerKey, headerVal)
 			w.WriteHeader(statusCode)
 			w.Write([]byte(responseBody))
@@ -419,12 +428,12 @@ func TestNoOpRequestDecoder(t *testing.T) {
 func testServer(t *testing.T) (step func(), resp <-chan *http.Response) {
 	var (
 		stepch   = make(chan bool)
-		endpoint = func(context.Context, interface{}) (interface{}, error) { <-stepch; return struct{}{}, nil }
+		endpoint = func(context.Context, serverReq) (serverResp, error) { <-stepch; return serverResp{"resp1"}, nil }
 		response = make(chan *http.Response)
-		handler  = httptransport.NewServer[any, any](
+		handler  = httptransport.NewServer[serverReq, serverResp](
 			endpoint,
-			func(context.Context, *http.Request) (interface{}, error) { return struct{}{}, nil },
-			func(context.Context, http.ResponseWriter, interface{}) error { return nil },
+			func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, nil },
+			func(context.Context, http.ResponseWriter, serverResp) error { return nil },
 			gokithttptransport.ServerBefore(func(ctx context.Context, r *http.Request) context.Context { return ctx }),
 			gokithttptransport.ServerAfter(func(ctx context.Context, w http.ResponseWriter) context.Context { return ctx }),
 		)
