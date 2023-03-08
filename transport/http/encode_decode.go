@@ -40,13 +40,20 @@ func DecodeRequestFuncAdapter[Req any](f gokithttptransport.DecodeRequestFunc) D
 // object. It's designed to be used in HTTP clients, for client-side
 // endpoints. One straightforward EncodeRequestFunc could be something that JSON
 // encodes the object directly to the request body.
-type EncodeRequestFunc func(context.Context, *http.Request, interface{}) error
+type EncodeRequestFunc[Req any] func(context.Context, *http.Request, Req) error
+
+// EncodeRequestFuncAdapter is an adapter from the non-generic EncodeRequestFunc function
+func EncodeRequestFuncAdapter[Req any](f gokithttptransport.EncodeRequestFunc) EncodeRequestFunc[Req] {
+	return func(ctx context.Context, request *http.Request, req Req) error {
+		return f(ctx, request, req)
+	}
+}
 
 // CreateRequestFunc creates an outgoing HTTP request based on the passed
 // request object. It's designed to be used in HTTP clients, for client-side
 // endpoints. It's a more powerful version of EncodeRequestFunc, and can be used
 // if more fine-grained control of the HTTP request is required.
-type CreateRequestFunc func(context.Context, interface{}) (*http.Request, error)
+type CreateRequestFunc[Req any] func(context.Context, Req) (*http.Request, error)
 
 // EncodeResponseFunc encodes the passed response object to the HTTP response
 // writer. It's designed to be used in HTTP servers, for server-side
@@ -65,4 +72,26 @@ func EncodeResponseFuncAdapter[Resp any](f gokithttptransport.EncodeResponseFunc
 // response object. It's designed to be used in HTTP clients, for client-side
 // endpoints. One straightforward DecodeResponseFunc could be something that
 // JSON decodes from the response body to the concrete response type.
-type DecodeResponseFunc func(context.Context, *http.Response) (response interface{}, err error)
+type DecodeResponseFunc[Resp any] func(context.Context, *http.Response) (response Resp, err error)
+
+// DecodeResponseFuncAdapter is an adapter from the non-generic DecodeRequestFunc function
+func DecodeResponseFuncAdapter[Resp any](f gokithttptransport.DecodeResponseFunc) DecodeResponseFunc[Resp] {
+	return func(ctx context.Context, r *http.Response) (Resp, error) {
+		resp, err := f(ctx, r)
+		if err != nil {
+			var rr Resp
+			return rr, err
+		}
+
+		switch tr := resp.(type) {
+		case nil:
+			var rr Resp
+			return rr, nil
+		case Resp:
+			return tr, nil
+		default:
+			var rr Resp
+			return rr, endpoint.ErrParameterInvalidType
+		}
+	}
+}
