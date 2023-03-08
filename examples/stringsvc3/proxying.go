@@ -8,17 +8,18 @@ import (
 	"strings"
 	"time"
 
+	tendpoint "github.com/RangelReale/go-kit-typed/endpoint"
 	"golang.org/x/time/rate"
 
 	"github.com/sony/gobreaker"
 
+	thttptransport "github.com/RangelReale/go-kit-typed/transport/http"
 	"github.com/go-kit/kit/circuitbreaker"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/ratelimit"
 	"github.com/go-kit/kit/sd"
 	"github.com/go-kit/kit/sd/lb"
-	httptransport "github.com/go-kit/kit/transport/http"
 )
 
 func proxyingMiddleware(ctx context.Context, instances string, logger log.Logger) ServiceMiddleware {
@@ -45,11 +46,13 @@ func proxyingMiddleware(ctx context.Context, instances string, logger log.Logger
 	)
 	logger.Log("proxy_to", fmt.Sprint(instanceList))
 	for _, instance := range instanceList {
-		var e endpoint.Endpoint
+		var e tendpoint.Endpoint[uppercaseRequest, uppercaseResponse]
 		e = makeUppercaseProxy(ctx, instance)
-		e = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(e)
-		e = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), qps))(e)
-		endpointer = append(endpointer, e)
+		// e = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{}))(e)
+		// e = ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), qps))(e)
+		e = tendpoint.MiddlewareAdapter(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{})), e)
+		e = tendpoint.MiddlewareAdapter(ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), qps)), e)
+		endpointer = append(endpointer, tendpoint.EndpointAdapterBack(e))
 	}
 
 	// Now, build a single, retrying, load-balancing endpoint out of all of
@@ -89,7 +92,7 @@ func (mw proxymw) Uppercase(s string) (string, error) {
 	return resp.V, nil
 }
 
-func makeUppercaseProxy(ctx context.Context, instance string) endpoint.Endpoint {
+func makeUppercaseProxy(ctx context.Context, instance string) tendpoint.Endpoint[uppercaseRequest, uppercaseResponse] {
 	if !strings.HasPrefix(instance, "http") {
 		instance = "http://" + instance
 	}
@@ -100,10 +103,10 @@ func makeUppercaseProxy(ctx context.Context, instance string) endpoint.Endpoint 
 	if u.Path == "" {
 		u.Path = "/uppercase"
 	}
-	return httptransport.NewClient(
+	return thttptransport.NewClient(
 		"GET",
 		u,
-		encodeRequest,
+		thttptransport.EncodeRequestFuncAdapter[uppercaseRequest](encodeRequest),
 		decodeUppercaseResponse,
 	).Endpoint()
 }

@@ -32,6 +32,22 @@ func EndpointAdapter[Req any, Resp any](endpoint gokitendpoint.Endpoint) Endpoin
 	}
 }
 
+// EndpointAdapterBack is an adapter from a typed endpoint to a standard go-kit version.
+func EndpointAdapterBack[Req any, Resp any](e Endpoint[Req, Resp]) gokitendpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		switch tr := request.(type) {
+		case nil:
+			var r Req
+			return e(ctx, r)
+		case Req:
+			return e(ctx, tr)
+		default:
+			var r Req
+			return r, ErrParameterInvalidType
+		}
+	}
+}
+
 // MiddlewareAdapter is an adapter for middlewares and generic endpoints.
 func MiddlewareAdapter[Req any, Resp any](middleware gokitendpoint.Middleware,
 	endpoint Endpoint[Req, Resp]) Endpoint[Req, Resp] {

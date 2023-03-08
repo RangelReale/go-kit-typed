@@ -7,12 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/go-kit/kit/endpoint"
+	tendpoint "github.com/RangelReale/go-kit-typed/endpoint"
 )
 
-func makeUppercaseEndpoint(svc StringService) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(uppercaseRequest)
+func makeUppercaseEndpoint(svc StringService) tendpoint.Endpoint[uppercaseRequest, uppercaseResponse] {
+	return func(ctx context.Context, req uppercaseRequest) (uppercaseResponse, error) {
 		v, err := svc.Uppercase(req.S)
 		if err != nil {
 			return uppercaseResponse{v, err.Error()}, nil
@@ -21,34 +20,33 @@ func makeUppercaseEndpoint(svc StringService) endpoint.Endpoint {
 	}
 }
 
-func makeCountEndpoint(svc StringService) endpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		req := request.(countRequest)
+func makeCountEndpoint(svc StringService) tendpoint.Endpoint[countRequest, countResponse] {
+	return func(ctx context.Context, req countRequest) (countResponse, error) {
 		v := svc.Count(req.S)
 		return countResponse{v}, nil
 	}
 }
 
-func decodeUppercaseRequest(_ context.Context, r *http.Request) (interface{}, error) {
+func decodeUppercaseRequest(_ context.Context, r *http.Request) (uppercaseRequest, error) {
 	var request uppercaseRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
+		return uppercaseRequest{}, err
 	}
 	return request, nil
 }
 
-func decodeCountRequest(_ context.Context, r *http.Request) (interface{}, error) {
+func decodeCountRequest(_ context.Context, r *http.Request) (countRequest, error) {
 	var request countRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, err
+		return countRequest{}, err
 	}
 	return request, nil
 }
 
-func decodeUppercaseResponse(_ context.Context, r *http.Response) (interface{}, error) {
+func decodeUppercaseResponse(_ context.Context, r *http.Response) (uppercaseResponse, error) {
 	var response uppercaseResponse
 	if err := json.NewDecoder(r.Body).Decode(&response); err != nil {
-		return nil, err
+		return uppercaseResponse{}, err
 	}
 	return response, nil
 }
