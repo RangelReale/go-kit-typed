@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/RangelReale/go-kit-typed/endpoint"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 )
 
@@ -17,11 +18,21 @@ type DecodeRequestFunc[Req any] func(context.Context, *http.Request) (request Re
 func DecodeRequestFuncAdapter[Req any](f gokithttptransport.DecodeRequestFunc) DecodeRequestFunc[Req] {
 	return func(ctx context.Context, r *http.Request) (Req, error) {
 		req, err := f(ctx, r)
-		if req != nil {
-			return req.(Req), err
+		if err != nil {
+			var rr Req
+			return rr, err
 		}
-		var rr Req
-		return rr, err
+
+		switch tr := req.(type) {
+		case nil:
+			var rr Req
+			return rr, nil
+		case Req:
+			return tr, nil
+		default:
+			var rr Req
+			return rr, endpoint.ErrParameterInvalidType
+		}
 	}
 }
 

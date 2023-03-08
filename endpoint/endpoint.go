@@ -13,11 +13,21 @@ type Endpoint[Req any, Resp any] func(ctx context.Context, request Req) (respons
 func EndpointAdapter[Req any, Resp any](endpoint gokitendpoint.Endpoint) Endpoint[Req, Resp] {
 	return func(ctx context.Context, request Req) (Resp, error) {
 		resp, err := endpoint(ctx, request)
-		if resp != nil {
-			return resp.(Resp), err
+		if err != nil {
+			var r Resp
+			return r, err
 		}
-		var r Resp
-		return r, nil
+
+		switch tr := resp.(type) {
+		case nil:
+			var rr Resp
+			return rr, nil
+		case Resp:
+			return tr, nil
+		default:
+			var rr Resp
+			return rr, ErrParameterInvalidType
+		}
 	}
 }
 

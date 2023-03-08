@@ -66,6 +66,114 @@ func TestServerBadEncode(t *testing.T) {
 	}
 }
 
+func TestServerNilReq(t *testing.T) {
+	var handlerErr error
+	handler := httptransport.NewServer[serverReq, serverResp](
+		func(context.Context, serverReq) (serverResp, error) { return serverResp{"req1"}, nil },
+		httptransport.DecodeRequestFuncAdapter[serverReq](func(ctx context.Context, r *http.Request) (interface{}, error) {
+			return nil, nil
+		}),
+		func(_ context.Context, w http.ResponseWriter, resp serverResp) error {
+			w.WriteHeader(http.StatusTeapot)
+			return nil
+		},
+		gokithttptransport.ServerErrorEncoder(func(_ context.Context, err error, w http.ResponseWriter) {
+			w.WriteHeader(http.StatusInternalServerError)
+			handlerErr = err
+		}),
+	)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	resp, _ := http.Get(server.URL)
+	if handlerErr != nil {
+		t.Errorf("no error expected, received %v", handlerErr)
+	}
+	if want, have := http.StatusTeapot, resp.StatusCode; want != have {
+		t.Errorf("want %d, have %d", want, have)
+	}
+}
+
+func TestServerBadReq(t *testing.T) {
+	var handlerErr error
+	handler := httptransport.NewServer[serverReq, serverResp](
+		func(context.Context, serverReq) (serverResp, error) { return serverResp{"req1"}, nil },
+		httptransport.DecodeRequestFuncAdapter[serverReq](func(ctx context.Context, r *http.Request) (interface{}, error) {
+			return "bad_type", nil
+		}),
+		func(_ context.Context, w http.ResponseWriter, resp serverResp) error {
+			w.WriteHeader(http.StatusTeapot)
+			return nil
+		},
+		gokithttptransport.ServerErrorEncoder(func(_ context.Context, err error, w http.ResponseWriter) {
+			w.WriteHeader(http.StatusInternalServerError)
+			handlerErr = err
+		}),
+	)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	resp, _ := http.Get(server.URL)
+	if !errors.Is(handlerErr, endpoint.ErrParameterInvalidType) {
+		t.Errorf("expected ErrParameterInvalidType, received %v", handlerErr)
+	}
+	if want, have := http.StatusInternalServerError, resp.StatusCode; want != have {
+		t.Errorf("want %d, have %d", want, have)
+	}
+}
+
+func TestServerNilResp(t *testing.T) {
+	var handlerErr error
+	handler := httptransport.NewServer[serverReq, serverResp](
+		endpoint.EndpointAdapter[serverReq, serverResp](func(ctx context.Context, req interface{}) (interface{}, error) {
+			return nil, nil
+		}),
+		func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, nil },
+		func(_ context.Context, w http.ResponseWriter, resp serverResp) error {
+			w.WriteHeader(http.StatusTeapot)
+			return nil
+		},
+		gokithttptransport.ServerErrorEncoder(func(_ context.Context, err error, w http.ResponseWriter) {
+			w.WriteHeader(http.StatusInternalServerError)
+			handlerErr = err
+		}),
+	)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	resp, _ := http.Get(server.URL)
+	if handlerErr != nil {
+		t.Errorf("no error expected, received %v", handlerErr)
+	}
+	if want, have := http.StatusTeapot, resp.StatusCode; want != have {
+		t.Errorf("want %d, have %d", want, have)
+	}
+}
+
+func TestServerBadResp(t *testing.T) {
+	var handlerErr error
+	handler := httptransport.NewServer[serverReq, serverResp](
+		endpoint.EndpointAdapter[serverReq, serverResp](func(ctx context.Context, req interface{}) (interface{}, error) {
+			return "bad_type", nil
+		}),
+		func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, nil },
+		func(_ context.Context, w http.ResponseWriter, resp serverResp) error {
+			w.WriteHeader(http.StatusTeapot)
+			return nil
+		},
+		gokithttptransport.ServerErrorEncoder(func(_ context.Context, err error, w http.ResponseWriter) {
+			w.WriteHeader(http.StatusInternalServerError)
+			handlerErr = err
+		}),
+	)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+	resp, _ := http.Get(server.URL)
+	if !errors.Is(handlerErr, endpoint.ErrParameterInvalidType) {
+		t.Errorf("expected ErrParameterInvalidType, received %v", handlerErr)
+	}
+	if want, have := http.StatusInternalServerError, resp.StatusCode; want != have {
+		t.Errorf("want %d, have %d", want, have)
+	}
+}
+
 func TestServerErrorEncoder(t *testing.T) {
 	errTeapot := errors.New("teapot")
 	code := func(err error) int {
