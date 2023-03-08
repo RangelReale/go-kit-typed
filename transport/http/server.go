@@ -38,11 +38,16 @@ func (s Server[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func serverEndpointAdapter[Req any, Resp any](endpoint endpoint.Endpoint[Req, Resp]) gokitendpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		if request == nil {
+		switch tr := request.(type) {
+		case nil:
 			var r Req
 			return endpoint(ctx, r)
+		case Req:
+			return endpoint(ctx, tr)
+		default:
+			var r Req
+			return r, ErrInvalidType
 		}
-		return endpoint(ctx, request.(Req))
 	}
 }
 
@@ -54,10 +59,14 @@ func serverDecodeRequestFuncAdapter[Req any](f DecodeRequestFunc[Req]) gokithttp
 
 func serverEncodeResponseFuncAdapter[Resp any](f EncodeResponseFunc[Resp]) gokithttptransport.EncodeResponseFunc {
 	return func(ctx context.Context, w http.ResponseWriter, i interface{}) error {
-		if i == nil {
+		switch ti := i.(type) {
+		case nil:
 			var r Resp
 			return f(ctx, w, r)
+		case Resp:
+			return f(ctx, w, ti)
+		default:
+			return ErrInvalidType
 		}
-		return f(ctx, w, i.(Resp))
 	}
 }
