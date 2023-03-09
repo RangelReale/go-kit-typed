@@ -6,7 +6,6 @@ import (
 
 	"github.com/RangelReale/go-kit-typed/endpoint"
 	"github.com/RangelReale/go-kit-typed/util"
-	gokitendpoint "github.com/go-kit/kit/endpoint"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 )
 
@@ -23,7 +22,8 @@ func NewServer[Req any, Resp any](
 	enc EncodeResponseFunc[Resp],
 	options ...gokithttptransport.ServerOption,
 ) *Server[Req, Resp] {
-	server := gokithttptransport.NewServer(serverEndpointAdapter(e),
+	server := gokithttptransport.NewServer(
+		endpoint.ReverseAdapter(e),
 		serverDecodeRequestFuncAdapter(dec),
 		serverEncodeResponseFuncAdapter(enc),
 		options...)
@@ -40,7 +40,8 @@ func NewServerStdDec[Req any, Resp any](
 	enc EncodeResponseFunc[Resp],
 	options ...gokithttptransport.ServerOption,
 ) *Server[Req, Resp] {
-	server := gokithttptransport.NewServer(serverEndpointAdapter(e),
+	server := gokithttptransport.NewServer(
+		endpoint.ReverseAdapter(e),
 		dec,
 		serverEncodeResponseFuncAdapter(enc),
 		options...)
@@ -57,7 +58,8 @@ func NewServerStdEnc[Req any, Resp any](
 	enc gokithttptransport.EncodeResponseFunc,
 	options ...gokithttptransport.ServerOption,
 ) *Server[Req, Resp] {
-	server := gokithttptransport.NewServer(serverEndpointAdapter(e),
+	server := gokithttptransport.NewServer(
+		endpoint.ReverseAdapter(e),
 		serverDecodeRequestFuncAdapter(dec),
 		enc,
 		options...)
@@ -69,21 +71,6 @@ func NewServerStdEnc[Req any, Resp any](
 // ServeHTTP implements http.Handler.
 func (s Server[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.server.ServeHTTP(w, r)
-}
-
-func serverEndpointAdapter[Req any, Resp any](e endpoint.Endpoint[Req, Resp]) gokitendpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		switch tr := request.(type) {
-		case nil:
-			var r Req
-			return e(ctx, r)
-		case Req:
-			return e(ctx, tr)
-		default:
-			var r Req
-			return r, util.ErrParameterInvalidType
-		}
-	}
 }
 
 func serverDecodeRequestFuncAdapter[Req any](f DecodeRequestFunc[Req]) gokithttptransport.DecodeRequestFunc {
