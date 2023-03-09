@@ -14,7 +14,7 @@ type DecodeRequestFunc[Req any] func(context.Context, interface{}) (request Req,
 // object. It's designed to be used in gRPC clients, for client-side endpoints.
 // One straightforward EncodeRequestFunc could something that encodes the object
 // directly to the gRPC request message.
-type EncodeRequestFunc[Req any] func(context.Context, interface{}) (request Req, err error)
+type EncodeRequestFunc[Req any] func(context.Context, Req) (request interface{}, err error)
 
 // EncodeResponseFunc encodes the passed response object to the gRPC response
 // message. It's designed to be used in gRPC servers, for server-side endpoints.
@@ -26,4 +26,4 @@ type EncodeResponseFunc[Resp any] func(context.Context, Resp) (response interfac
 // response object. It's designed to be used in gRPC clients, for client-side
 // endpoints. One straightforward DecodeResponseFunc could be something that
 // decodes from the gRPC response message to the concrete response type.
-type DecodeResponseFunc[Resp any] func(context.Context, Resp) (response interface{}, err error)
+type DecodeResponseFunc[Resp any] func(context.Context, interface{}) (response Resp, err error)

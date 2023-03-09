@@ -18,7 +18,8 @@ type Client[Req any, Resp any] struct {
 // NewClient constructs a usable Client for a single remote method.
 func NewClient[Req any, Resp any](method string, tgt *url.URL, enc EncodeRequestFunc[Req],
 	dec DecodeResponseFunc[Resp], options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
-	client := gokithttptransport.NewClient(method,
+	client := gokithttptransport.NewClient(
+		method,
 		tgt,
 		clientEncodeRequestFuncAdapterAdapter(enc),
 		clientDecodeResponseFuncAdapter(dec),
