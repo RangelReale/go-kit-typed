@@ -28,13 +28,68 @@ func NewClient[Req any, Resp any](method string, tgt *url.URL, enc EncodeRequest
 	}
 }
 
+// NewClientStdEnc constructs a usable Client for a single remote method.
+func NewClientStdEnc[Req any, Resp any](method string, tgt *url.URL, enc gokithttptransport.EncodeRequestFunc,
+	dec DecodeResponseFunc[Resp], options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
+	client := gokithttptransport.NewClient(method,
+		tgt,
+		enc,
+		clientDecodeResponseFuncAdapter(dec),
+		options...)
+	return &Client[Req, Resp]{
+		client: client,
+	}
+}
+
+// NewClientStdDec constructs a usable Client for a single remote method.
+func NewClientStdDec[Req any, Resp any](method string, tgt *url.URL, enc EncodeRequestFunc[Req],
+	dec gokithttptransport.DecodeResponseFunc, options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
+	client := gokithttptransport.NewClient(
+		method,
+		tgt,
+		clientEncodeRequestFuncAdapterAdapter(enc),
+		dec,
+		options...)
+	return &Client[Req, Resp]{
+		client: client,
+	}
+}
+
 // NewExplicitClient is like NewClient but uses a CreateRequestFunc instead of a
 // method, target URL, and EncodeRequestFunc, which allows for more control over
 // the outgoing HTTP request.
 func NewExplicitClient[Req any, Resp any](req CreateRequestFunc[Req], dec DecodeResponseFunc[Resp],
 	options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
-	client := gokithttptransport.NewExplicitClient(clientCreateRequestFuncAdapterAdapter(req),
+	client := gokithttptransport.NewExplicitClient(
+		clientCreateRequestFuncAdapterAdapter(req),
 		clientDecodeResponseFuncAdapter(dec),
+		options...)
+	return &Client[Req, Resp]{
+		client: client,
+	}
+}
+
+// NewExplicitClientStdCreate is like NewClient but uses a CreateRequestFunc instead of a
+// method, target URL, and EncodeRequestFunc, which allows for more control over
+// the outgoing HTTP request, using the non-typed creator.
+func NewExplicitClientStdCreate[Req any, Resp any](req gokithttptransport.CreateRequestFunc, dec DecodeResponseFunc[Resp],
+	options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
+	client := gokithttptransport.NewExplicitClient(
+		req,
+		clientDecodeResponseFuncAdapter(dec),
+		options...)
+	return &Client[Req, Resp]{
+		client: client,
+	}
+}
+
+// NewExplicitClientStdDec is like NewClient but uses a CreateRequestFunc instead of a
+// method, target URL, and EncodeRequestFunc, which allows for more control over
+// the outgoing HTTP request, using the non-typed decoder.
+func NewExplicitClientStdDec[Req any, Resp any](req CreateRequestFunc[Req], dec gokithttptransport.DecodeResponseFunc,
+	options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
+	client := gokithttptransport.NewExplicitClient(clientCreateRequestFuncAdapterAdapter(req),
+		dec,
 		options...)
 	return &Client[Req, Resp]{
 		client: client,
