@@ -52,6 +52,12 @@ func EndpointReverseAdapter[Req any, Resp any](e Endpoint[Req, Resp]) gokitendpo
 	}
 }
 
+// EndpointCast casts the standard go-kit endpoint to a typed endpoint of the same type as the first
+// parameter.
+func EndpointCast[Req any, Resp any](_ Endpoint[Req, Resp], endpoint gokitendpoint.Endpoint) Endpoint[Req, Resp] {
+	return EndpointAdapter[Req, Resp](endpoint)
+}
+
 // MiddlewareWrapper is an adapter for middlewares and generic endpoints.
 func MiddlewareWrapper[Req any, Resp any](middleware gokitendpoint.Middleware,
 	endpoint Endpoint[Req, Resp]) Endpoint[Req, Resp] {
