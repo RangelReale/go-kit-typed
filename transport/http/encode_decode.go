@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/RangelReale/go-kit-typed/endpoint"
+	"github.com/RangelReale/go-kit-typed/util"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 )
 
@@ -31,7 +31,7 @@ func DecodeRequestFuncAdapter[Req any](f gokithttptransport.DecodeRequestFunc) D
 			return tr, nil
 		default:
 			var rr Req
-			return rr, endpoint.ErrParameterInvalidType
+			return rr, util.ErrParameterInvalidType
 		}
 	}
 }
@@ -91,7 +91,7 @@ func DecodeResponseFuncAdapter[Resp any](f gokithttptransport.DecodeResponseFunc
 			return tr, nil
 		default:
 			var rr Resp
-			return rr, endpoint.ErrParameterInvalidType
+			return rr, util.ErrParameterInvalidType
 		}
 	}
 }

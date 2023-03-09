@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/RangelReale/go-kit-typed/endpoint"
+	"github.com/RangelReale/go-kit-typed/util"
 	gokitendpoint "github.com/go-kit/kit/endpoint"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 )
@@ -46,7 +47,7 @@ func serverEndpointAdapter[Req any, Resp any](e endpoint.Endpoint[Req, Resp]) go
 			return e(ctx, tr)
 		default:
 			var r Req
-			return r, endpoint.ErrParameterInvalidType
+			return r, util.ErrParameterInvalidType
 		}
 	}
 }
@@ -66,7 +67,7 @@ func serverEncodeResponseFuncAdapter[Resp any](f EncodeResponseFunc[Resp]) gokit
 		case Resp:
 			return f(ctx, w, ti)
 		default:
-			return endpoint.ErrParameterInvalidType
+			return util.ErrParameterInvalidType
 		}
 	}
 }

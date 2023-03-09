@@ -3,12 +3,16 @@ package endpoint
 import (
 	"context"
 
+	"github.com/RangelReale/go-kit-typed/util"
 	gokitendpoint "github.com/go-kit/kit/endpoint"
 )
 
 // Endpoint is the fundamental building block of servers and clients.
 // It represents a single RPC method.
 type Endpoint[Req any, Resp any] func(ctx context.Context, request Req) (response Resp, err error)
+
+// Middleware is a chainable behavior modifier for endpoints.
+type Middleware[Req any, Resp any] func(Endpoint[Req, Resp]) Endpoint[Req, Resp]
 
 // EndpointAdapter is an adapter from a standard go-kit endpoint to the typed version.
 func EndpointAdapter[Req any, Resp any](endpoint gokitendpoint.Endpoint) Endpoint[Req, Resp] {
@@ -27,7 +31,7 @@ func EndpointAdapter[Req any, Resp any](endpoint gokitendpoint.Endpoint) Endpoin
 			return tr, nil
 		default:
 			var rr Resp
-			return rr, ErrParameterInvalidType
+			return rr, util.ErrParameterInvalidType
 		}
 	}
 }
@@ -43,7 +47,7 @@ func EndpointAdapterBack[Req any, Resp any](e Endpoint[Req, Resp]) gokitendpoint
 			return e(ctx, tr)
 		default:
 			var r Req
-			return r, ErrParameterInvalidType
+			return r, util.ErrParameterInvalidType
 		}
 	}
 }
@@ -61,5 +65,28 @@ func MiddlewareAdapter[Req any, Resp any](middleware gokitendpoint.Middleware,
 		}
 		var r Resp
 		return r, nil
+	}
+}
+
+// MiddlewareAdapter2 is an adapter for middlewares and generic endpoints.
+func MiddlewareAdapter2[Req any, Resp any](middleware gokitendpoint.Middleware) Middleware[Req, Resp] {
+	return func(next Endpoint[Req, Resp]) Endpoint[Req, Resp] {
+		return func(ctx context.Context, request Req) (Resp, error) {
+			resp, err := middleware(EndpointAdapterBack(next))(ctx, request)
+			if err != nil {
+				var r Resp
+				return r, err
+			}
+			switch rt := resp.(type) {
+			case nil:
+				var r Resp
+				return r, nil
+			case Resp:
+				return rt, nil
+			default:
+				var r Resp
+				return r, util.ErrParameterInvalidType
+			}
+		}
 	}
 }

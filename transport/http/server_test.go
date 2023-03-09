@@ -12,6 +12,7 @@ import (
 
 	"github.com/RangelReale/go-kit-typed/endpoint"
 	httptransport "github.com/RangelReale/go-kit-typed/transport/http"
+	"github.com/RangelReale/go-kit-typed/util"
 	gokitendpoint "github.com/go-kit/kit/endpoint"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 )
@@ -112,7 +113,7 @@ func TestServerBadReq(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	resp, _ := http.Get(server.URL)
-	if !errors.Is(handlerErr, endpoint.ErrParameterInvalidType) {
+	if !errors.Is(handlerErr, util.ErrParameterInvalidType) {
 		t.Errorf("expected ErrParameterInvalidType, received %v", handlerErr)
 	}
 	if want, have := http.StatusInternalServerError, resp.StatusCode; want != have {
@@ -166,7 +167,7 @@ func TestServerBadResp(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 	resp, _ := http.Get(server.URL)
-	if !errors.Is(handlerErr, endpoint.ErrParameterInvalidType) {
+	if !errors.Is(handlerErr, util.ErrParameterInvalidType) {
 		t.Errorf("expected ErrParameterInvalidType, received %v", handlerErr)
 	}
 	if want, have := http.StatusInternalServerError, resp.StatusCode; want != have {
