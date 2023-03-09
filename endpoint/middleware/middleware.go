@@ -22,31 +22,10 @@ func Wrapper[Req any, Resp any](middleware gokitendpoint.Middleware,
 	endpoint endpoint.Endpoint[Req, Resp]) endpoint.Endpoint[Req, Resp] {
 	return func(ctx context.Context, req Req) (Resp, error) {
 		rmw := middleware(func(ctx context.Context, mreq interface{}) (interface{}, error) {
-			switch tr := mreq.(type) {
-			case nil:
-				var r Req
+			return util.CallTypeResponseWithError[Req, interface{}](mreq, func(r Req) (interface{}, error) {
 				return endpoint(ctx, r)
-			case Req:
-				return endpoint(ctx, tr)
-			default:
-				var r Req
-				return r, util.ErrParameterInvalidType
-			}
+			})
 		})
-		resp, err := rmw(ctx, req)
-		if err != nil {
-			var r Resp
-			return r, err
-		}
-		switch rt := resp.(type) {
-		case nil:
-			var r Resp
-			return r, nil
-		case Resp:
-			return rt, nil
-		default:
-			var r Resp
-			return r, util.ErrParameterInvalidType
-		}
+		return util.ReturnTypeWithError[Resp](rmw(ctx, req))
 	}
 }
