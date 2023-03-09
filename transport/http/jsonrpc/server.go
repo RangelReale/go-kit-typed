@@ -1,6 +1,8 @@
 package jsonrpc
 
 import (
+	"net/http"
+
 	gokitjsonrpctransport "github.com/go-kit/kit/transport/http/jsonrpc"
 )
 
@@ -18,4 +20,9 @@ func NewServer[Req any, Resp any](
 	return &Server[Req, Resp]{
 		server: server,
 	}
+}
+
+// ServeHTTP implements http.Handler.
+func (s Server[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.server.ServeHTTP(w, r)
 }
