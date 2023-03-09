@@ -43,7 +43,7 @@ func NewExplicitClient[Req any, Resp any](req CreateRequestFunc[Req], dec Decode
 
 // Endpoint returns a usable Go kit endpoint that calls the remote HTTP endpoint.
 func (c Client[Req, Resp]) Endpoint() endpoint.Endpoint[Req, Resp] {
-	return endpoint.EndpointAdapter[Req, Resp](c.client.Endpoint())
+	return endpoint.Adapter[Req, Resp](c.client.Endpoint())
 }
 
 func clientEncodeRequestFuncAdapterAdapter[Req any](f EncodeRequestFunc[Req]) gokithttptransport.EncodeRequestFunc {

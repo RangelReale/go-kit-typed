@@ -124,7 +124,7 @@ func TestServerBadReq(t *testing.T) {
 func TestServerNilResp(t *testing.T) {
 	var handlerErr error
 	handler := httptransport.NewServer[serverReq, serverResp](
-		endpoint.EndpointAdapter[serverReq, serverResp](func(ctx context.Context, req interface{}) (interface{}, error) {
+		endpoint.Adapter[serverReq, serverResp](func(ctx context.Context, req interface{}) (interface{}, error) {
 			return nil, nil
 		}),
 		func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, nil },
@@ -151,7 +151,7 @@ func TestServerNilResp(t *testing.T) {
 func TestServerBadResp(t *testing.T) {
 	var handlerErr error
 	handler := httptransport.NewServer[serverReq, serverResp](
-		endpoint.EndpointAdapter[serverReq, serverResp](func(ctx context.Context, req interface{}) (interface{}, error) {
+		endpoint.Adapter[serverReq, serverResp](func(ctx context.Context, req interface{}) (interface{}, error) {
 			return "bad_type", nil
 		}),
 		func(context.Context, *http.Request) (serverReq, error) { return serverReq{"req1"}, nil },
@@ -217,7 +217,7 @@ func TestMultipleServerBefore(t *testing.T) {
 		done         = make(chan struct{})
 	)
 	handler := httptransport.NewServer[serverReq, serverResp](
-		endpoint.EndpointAdapter[serverReq, serverResp](gokitendpoint.Nop),
+		endpoint.Adapter[serverReq, serverResp](gokitendpoint.Nop),
 		func(context.Context, *http.Request) (serverReq, error) {
 			return serverReq{"req1"}, nil
 		},
@@ -262,7 +262,7 @@ func TestMultipleServerAfter(t *testing.T) {
 		done         = make(chan struct{})
 	)
 	handler := httptransport.NewServer[serverReq, any](
-		endpoint.EndpointAdapter[serverReq, any](gokitendpoint.Nop),
+		endpoint.Adapter[serverReq, any](gokitendpoint.Nop),
 		func(context.Context, *http.Request) (serverReq, error) {
 			return serverReq{"req1"}, nil
 		},
@@ -307,7 +307,7 @@ func TestServerFinalizer(t *testing.T) {
 		done         = make(chan struct{})
 	)
 	handler := httptransport.NewServer[serverReq, any](
-		endpoint.EndpointAdapter[serverReq, any](gokitendpoint.Nop),
+		endpoint.Adapter[serverReq, any](gokitendpoint.Nop),
 		func(context.Context, *http.Request) (serverReq, error) {
 			return serverReq{"req1"}, nil
 		},
