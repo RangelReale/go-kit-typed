@@ -32,9 +32,9 @@ func NewServer[Req any, Resp any](
 	}
 }
 
-// NewServerStdReq constructs a new server, which implements http.Handler and wraps
-// the provided endpoint.
-func NewServerStdReq[Req any, Resp any](
+// NewServerStdDec constructs a new server, which implements http.Handler and wraps
+// the provided endpoint, using the non-typed decoder.
+func NewServerStdDec[Req any, Resp any](
 	e endpoint.Endpoint[Req, Resp],
 	dec gokithttptransport.DecodeRequestFunc,
 	enc EncodeResponseFunc[Resp],
@@ -49,9 +49,9 @@ func NewServerStdReq[Req any, Resp any](
 	}
 }
 
-// NewServerStdResp constructs a new server, which implements http.Handler and wraps
-// the provided endpoint.
-func NewServerStdResp[Req any, Resp any](
+// NewServerStdEnc constructs a new server, which implements http.Handler and wraps
+// the provided endpoint, using the non-typed encoder.
+func NewServerStdEnc[Req any, Resp any](
 	e endpoint.Endpoint[Req, Resp],
 	dec DecodeRequestFunc[Req],
 	enc gokithttptransport.EncodeResponseFunc,
