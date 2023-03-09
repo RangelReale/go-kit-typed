@@ -66,22 +66,7 @@ func EndpointCodecReverseAdapter[Req any, Resp any](codec EndpointCodec[Req, Res
 
 func DecodeRequestFuncAdapter[Req any](f gokitjsonrpctransport.DecodeRequestFunc) DecodeRequestFunc[Req] {
 	return func(ctx context.Context, message json.RawMessage) (Req, error) {
-		req, err := f(ctx, message)
-		if err != nil {
-			var rr Req
-			return rr, err
-		}
-
-		switch tr := req.(type) {
-		case nil:
-			var rr Req
-			return rr, nil
-		case Req:
-			return tr, nil
-		default:
-			var rr Req
-			return rr, util.ErrParameterInvalidType
-		}
+		return util.ReturnTypeWithError[Req](f(ctx, message))
 	}
 }
 
@@ -99,29 +84,25 @@ func EncodeResponseFuncAdapter[Resp any](f gokitjsonrpctransport.EncodeResponseF
 
 func EncodeResponseFuncReverseAdapter[Resp any](f EncodeResponseFunc[Resp]) gokitjsonrpctransport.EncodeResponseFunc {
 	return func(ctx context.Context, i interface{}) (json.RawMessage, error) {
-		switch ti := i.(type) {
-		case nil:
-			var r Resp
-			return f(ctx, r)
-		case Resp:
-			return f(ctx, ti)
-		default:
-			return nil, util.ErrParameterInvalidType
-		}
+		var rm json.RawMessage
+		err := util.CallTypeWithError[Resp](i, func(r Resp) error {
+			var callErr error
+			rm, callErr = f(ctx, r)
+			return callErr
+		})
+		return rm, err
 	}
 }
 
 func EncodeRequestFuncReverseAdapter[Req any](f EncodeRequestFunc[Req]) gokitjsonrpctransport.EncodeRequestFunc {
 	return func(ctx context.Context, i interface{}) (json.RawMessage, error) {
-		switch ri := i.(type) {
-		case nil:
-			var r Req
-			return f(ctx, r)
-		case Req:
-			return f(ctx, ri)
-		default:
-			return nil, util.ErrParameterInvalidType
-		}
+		var rm json.RawMessage
+		err := util.CallTypeWithError[Req](i, func(r Req) error {
+			var callErr error
+			rm, callErr = f(ctx, r)
+			return callErr
+		})
+		return rm, err
 	}
 }
 

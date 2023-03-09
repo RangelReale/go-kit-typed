@@ -41,22 +41,7 @@ type DecodeResponseFunc[Resp any] func(context.Context, *http.Response) (respons
 // DecodeRequestFuncAdapter is an adapter from the non-generic DecodeRequestFunc function
 func DecodeRequestFuncAdapter[Req any](f gokithttptransport.DecodeRequestFunc) DecodeRequestFunc[Req] {
 	return func(ctx context.Context, r *http.Request) (Req, error) {
-		req, err := f(ctx, r)
-		if err != nil {
-			var rr Req
-			return rr, err
-		}
-
-		switch tr := req.(type) {
-		case nil:
-			var rr Req
-			return rr, nil
-		case Req:
-			return tr, nil
-		default:
-			var rr Req
-			return rr, util.ErrParameterInvalidType
-		}
+		return util.ReturnTypeWithError[Req](f(ctx, r))
 	}
 }
 
@@ -77,22 +62,7 @@ func EncodeResponseFuncAdapter[Resp any](f gokithttptransport.EncodeResponseFunc
 // DecodeResponseFuncAdapter is an adapter from the non-generic DecodeRequestFunc function
 func DecodeResponseFuncAdapter[Resp any](f gokithttptransport.DecodeResponseFunc) DecodeResponseFunc[Resp] {
 	return func(ctx context.Context, r *http.Response) (Resp, error) {
-		resp, err := f(ctx, r)
-		if err != nil {
-			var rr Resp
-			return rr, err
-		}
-
-		switch tr := resp.(type) {
-		case nil:
-			var rr Resp
-			return rr, nil
-		case Resp:
-			return tr, nil
-		default:
-			var rr Resp
-			return rr, util.ErrParameterInvalidType
-		}
+		return util.ReturnTypeWithError[Resp](f(ctx, r))
 	}
 }
 
@@ -106,48 +76,35 @@ func DecodeRequestFuncReverseAdapter[Req any](f DecodeRequestFunc[Req]) gokithtt
 // EncodeRequestFuncReverseAdapter is an adapter to the non-generic EncodeRequestFunc function
 func EncodeRequestFuncReverseAdapter[Req any](f EncodeRequestFunc[Req]) gokithttptransport.EncodeRequestFunc {
 	return func(ctx context.Context, request *http.Request, i interface{}) error {
-		switch ri := i.(type) {
-		case nil:
-			var r Req
+		return util.CallTypeWithError[Req](i, func(r Req) error {
 			return f(ctx, request, r)
-		case Req:
-			return f(ctx, request, ri)
-		default:
-			return util.ErrParameterInvalidType
-		}
+		})
 	}
 }
 
 // CreateRequestFuncReverseAdapter is an adapter to the non-generic CreateRequestFunc function
 func CreateRequestFuncReverseAdapter[Req any](f CreateRequestFunc[Req]) gokithttptransport.CreateRequestFunc {
 	return func(ctx context.Context, i interface{}) (*http.Request, error) {
-		switch ri := i.(type) {
-		case nil:
-			var r Req
-			return f(ctx, r)
-		case Req:
-			return f(ctx, ri)
-		default:
-			return nil, util.ErrParameterInvalidType
-		}
+		var req *http.Request
+		err := util.CallTypeWithError[Req](i, func(r Req) error {
+			var callErr error
+			req, callErr = f(ctx, r)
+			return callErr
+		})
+		return req, err
 	}
 }
 
 // EncodeResponseFuncReverseAdapter is an adapter to the non-generic EncodeResponseFunc function
 func EncodeResponseFuncReverseAdapter[Resp any](f EncodeResponseFunc[Resp]) gokithttptransport.EncodeResponseFunc {
 	return func(ctx context.Context, w http.ResponseWriter, i interface{}) error {
-		switch ti := i.(type) {
-		case nil:
-			var r Resp
+		return util.CallTypeWithError[Resp](i, func(r Resp) error {
 			return f(ctx, w, r)
-		case Resp:
-			return f(ctx, w, ti)
-		default:
-			return util.ErrParameterInvalidType
-		}
+		})
 	}
 }
 
+// DecodeResponseFuncReverseAdapter is an adapter to the non-generic DecodeResponseFunc function
 func DecodeResponseFuncReverseAdapter[Resp any](f DecodeResponseFunc[Resp]) gokithttptransport.DecodeResponseFunc {
 	return func(ctx context.Context, r *http.Response) (interface{}, error) {
 		return f(ctx, r)
