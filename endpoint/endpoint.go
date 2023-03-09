@@ -57,7 +57,16 @@ func MiddlewareWrapper[Req any, Resp any](middleware gokitendpoint.Middleware,
 	endpoint Endpoint[Req, Resp]) Endpoint[Req, Resp] {
 	return func(ctx context.Context, req Req) (Resp, error) {
 		rmw := middleware(func(ctx context.Context, mreq interface{}) (interface{}, error) {
-			return endpoint(ctx, mreq.(Req))
+			switch tr := mreq.(type) {
+			case nil:
+				var r Req
+				return endpoint(ctx, r)
+			case Req:
+				return endpoint(ctx, tr)
+			default:
+				var r Req
+				return r, util.ErrParameterInvalidType
+			}
 		})
 		resp, err := rmw(ctx, req)
 		if err != nil {
