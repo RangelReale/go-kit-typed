@@ -47,14 +47,14 @@ func New(svc addservice.Service, logger log.Logger, duration metrics.Histogram, 
 		// }
 		// sumEndpoint = LoggingMiddleware(log.With(logger, "method", "Sum"))(sumEndpoint)
 		// sumEndpoint = InstrumentingMiddleware(duration.With("method", "Sum"))(sumEndpoint)
-		sumEndpoint = tendpoint.MiddlewareAdapter(ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1)), sumEndpoint)
-		sumEndpoint = tendpoint.MiddlewareAdapter(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{})), sumEndpoint)
-		sumEndpoint = tendpoint.MiddlewareAdapter(opentracing.TraceServer(otTracer, "Sum"), sumEndpoint)
+		sumEndpoint = tendpoint.MiddlewareWrapper(ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Every(time.Second), 1)), sumEndpoint)
+		sumEndpoint = tendpoint.MiddlewareWrapper(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{})), sumEndpoint)
+		sumEndpoint = tendpoint.MiddlewareWrapper(opentracing.TraceServer(otTracer, "Sum"), sumEndpoint)
 		if zipkinTracer != nil {
-			sumEndpoint = tendpoint.MiddlewareAdapter(zipkin.TraceEndpoint(zipkinTracer, "Sum"), sumEndpoint)
+			sumEndpoint = tendpoint.MiddlewareWrapper(zipkin.TraceEndpoint(zipkinTracer, "Sum"), sumEndpoint)
 		}
-		sumEndpoint = tendpoint.MiddlewareAdapter(LoggingMiddleware(log.With(logger, "method", "Sum")), sumEndpoint)
-		sumEndpoint = tendpoint.MiddlewareAdapter(InstrumentingMiddleware(duration.With("method", "Sum")), sumEndpoint)
+		sumEndpoint = tendpoint.MiddlewareWrapper(LoggingMiddleware(log.With(logger, "method", "Sum")), sumEndpoint)
+		sumEndpoint = tendpoint.MiddlewareWrapper(InstrumentingMiddleware(duration.With("method", "Sum")), sumEndpoint)
 	}
 	var concatEndpoint tendpoint.Endpoint[ConcatRequest, ConcatResponse]
 	{
@@ -69,14 +69,14 @@ func New(svc addservice.Service, logger log.Logger, duration metrics.Histogram, 
 		// }
 		// concatEndpoint = LoggingMiddleware(log.With(logger, "method", "Concat"))(concatEndpoint)
 		// concatEndpoint = InstrumentingMiddleware(duration.With("method", "Concat"))(concatEndpoint)
-		concatEndpoint = tendpoint.MiddlewareAdapter(ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100)), concatEndpoint)
-		concatEndpoint = tendpoint.MiddlewareAdapter(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{})), concatEndpoint)
-		concatEndpoint = tendpoint.MiddlewareAdapter(opentracing.TraceServer(otTracer, "Concat"), concatEndpoint)
+		concatEndpoint = tendpoint.MiddlewareWrapper(ratelimit.NewErroringLimiter(rate.NewLimiter(rate.Limit(1), 100)), concatEndpoint)
+		concatEndpoint = tendpoint.MiddlewareWrapper(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{})), concatEndpoint)
+		concatEndpoint = tendpoint.MiddlewareWrapper(opentracing.TraceServer(otTracer, "Concat"), concatEndpoint)
 		if zipkinTracer != nil {
-			concatEndpoint = tendpoint.MiddlewareAdapter(zipkin.TraceEndpoint(zipkinTracer, "Concat"), concatEndpoint)
+			concatEndpoint = tendpoint.MiddlewareWrapper(zipkin.TraceEndpoint(zipkinTracer, "Concat"), concatEndpoint)
 		}
-		concatEndpoint = tendpoint.MiddlewareAdapter(LoggingMiddleware(log.With(logger, "method", "Concat")), concatEndpoint)
-		concatEndpoint = tendpoint.MiddlewareAdapter(InstrumentingMiddleware(duration.With("method", "Concat")), concatEndpoint)
+		concatEndpoint = tendpoint.MiddlewareWrapper(LoggingMiddleware(log.With(logger, "method", "Concat")), concatEndpoint)
+		concatEndpoint = tendpoint.MiddlewareWrapper(InstrumentingMiddleware(duration.With("method", "Concat")), concatEndpoint)
 	}
 	return Set{
 		SumEndpoint:    sumEndpoint,

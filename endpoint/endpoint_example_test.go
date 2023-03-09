@@ -15,7 +15,7 @@ func ExampleChainGeneric() {
 		annotate("third"),
 	)
 
-	e := endpoint.MiddlewareAdapter(m, myGenericEndpoint)
+	e := endpoint.MiddlewareWrapper(m, myGenericEndpoint)
 
 	if _, err := e(ctx, "data1"); err != nil {
 		panic(err)

@@ -119,12 +119,12 @@ func NewHTTPClient(instance string, otTracer stdopentracing.Tracer, zipkinTracer
 		// 	Name:    "Sum",
 		// 	Timeout: 30 * time.Second,
 		// }))(sumEndpoint)
-		sumEndpoint = tendpoint.MiddlewareAdapter(opentracing.TraceClient(otTracer, "Sum"), sumEndpoint)
+		sumEndpoint = tendpoint.MiddlewareWrapper(opentracing.TraceClient(otTracer, "Sum"), sumEndpoint)
 		if zipkinTracer != nil {
-			sumEndpoint = tendpoint.MiddlewareAdapter(zipkin.TraceEndpoint(zipkinTracer, "Sum"), sumEndpoint)
+			sumEndpoint = tendpoint.MiddlewareWrapper(zipkin.TraceEndpoint(zipkinTracer, "Sum"), sumEndpoint)
 		}
-		sumEndpoint = tendpoint.MiddlewareAdapter(limiter, sumEndpoint)
-		sumEndpoint = tendpoint.MiddlewareAdapter(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
+		sumEndpoint = tendpoint.MiddlewareWrapper(limiter, sumEndpoint)
+		sumEndpoint = tendpoint.MiddlewareWrapper(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
 			Name:    "Sum",
 			Timeout: 30 * time.Second,
 		})), sumEndpoint)
@@ -150,12 +150,12 @@ func NewHTTPClient(instance string, otTracer stdopentracing.Tracer, zipkinTracer
 		// 	Name:    "Concat",
 		// 	Timeout: 10 * time.Second,
 		// }))(concatEndpoint)
-		concatEndpoint = tendpoint.MiddlewareAdapter(opentracing.TraceClient(otTracer, "Concat"), concatEndpoint)
+		concatEndpoint = tendpoint.MiddlewareWrapper(opentracing.TraceClient(otTracer, "Concat"), concatEndpoint)
 		if zipkinTracer != nil {
-			concatEndpoint = tendpoint.MiddlewareAdapter(zipkin.TraceEndpoint(zipkinTracer, "Concat"), concatEndpoint)
+			concatEndpoint = tendpoint.MiddlewareWrapper(zipkin.TraceEndpoint(zipkinTracer, "Concat"), concatEndpoint)
 		}
-		concatEndpoint = tendpoint.MiddlewareAdapter(limiter, concatEndpoint)
-		concatEndpoint = tendpoint.MiddlewareAdapter(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
+		concatEndpoint = tendpoint.MiddlewareWrapper(limiter, concatEndpoint)
+		concatEndpoint = tendpoint.MiddlewareWrapper(circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(gobreaker.Settings{
 			Name:    "Concat",
 			Timeout: 10 * time.Second,
 		})), concatEndpoint)
