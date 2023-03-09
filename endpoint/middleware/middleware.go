@@ -12,21 +12,7 @@ import (
 func Adapter[Req any, Resp any](middleware gokitendpoint.Middleware) endpoint.Middleware[Req, Resp] {
 	return func(next endpoint.Endpoint[Req, Resp]) endpoint.Endpoint[Req, Resp] {
 		return func(ctx context.Context, request Req) (Resp, error) {
-			resp, err := middleware(endpoint.ReverseAdapter(next))(ctx, request)
-			if err != nil {
-				var r Resp
-				return r, err
-			}
-			switch rt := resp.(type) {
-			case nil:
-				var r Resp
-				return r, nil
-			case Resp:
-				return rt, nil
-			default:
-				var r Resp
-				return r, util.ErrParameterInvalidType
-			}
+			return util.ReturnTypeWithError[Resp](middleware(endpoint.ReverseAdapter(next))(ctx, request))
 		}
 	}
 }

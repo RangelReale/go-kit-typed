@@ -55,13 +55,9 @@ func EncodeRequestFuncReverseAdapter[Req any](f EncodeRequestFunc[Req]) gokithtt
 // CreateRequestFuncReverseAdapter is an adapter to the non-generic CreateRequestFunc function
 func CreateRequestFuncReverseAdapter[Req any](f CreateRequestFunc[Req]) gokithttptransport.CreateRequestFunc {
 	return func(ctx context.Context, i interface{}) (*http.Request, error) {
-		var req *http.Request
-		err := util.CallTypeWithError[Req](i, func(r Req) error {
-			var callErr error
-			req, callErr = f(ctx, r)
-			return callErr
+		return util.CallTypeResponseWithError[Req, *http.Request](i, func(r Req) (*http.Request, error) {
+			return f(ctx, r)
 		})
-		return req, err
 	}
 }
 

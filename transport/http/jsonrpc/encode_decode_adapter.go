@@ -62,26 +62,18 @@ func EncodeResponseFuncAdapter[Resp any](f gokitjsonrpctransport.EncodeResponseF
 // EncodeResponseFuncReverseAdapter is an adapter to the non-generic EncodeResponseFunc function
 func EncodeResponseFuncReverseAdapter[Resp any](f EncodeResponseFunc[Resp]) gokitjsonrpctransport.EncodeResponseFunc {
 	return func(ctx context.Context, i interface{}) (json.RawMessage, error) {
-		var rm json.RawMessage
-		err := util.CallTypeWithError[Resp](i, func(r Resp) error {
-			var callErr error
-			rm, callErr = f(ctx, r)
-			return callErr
+		return util.CallTypeResponseWithError[Resp, json.RawMessage](i, func(r Resp) (json.RawMessage, error) {
+			return f(ctx, r)
 		})
-		return rm, err
 	}
 }
 
 // EncodeRequestFuncReverseAdapter is an adapter to the non-generic EncodeRequestFunc function
 func EncodeRequestFuncReverseAdapter[Req any](f EncodeRequestFunc[Req]) gokitjsonrpctransport.EncodeRequestFunc {
 	return func(ctx context.Context, i interface{}) (json.RawMessage, error) {
-		var rm json.RawMessage
-		err := util.CallTypeWithError[Req](i, func(r Req) error {
-			var callErr error
-			rm, callErr = f(ctx, r)
-			return callErr
+		return util.CallTypeResponseWithError[Req, json.RawMessage](i, func(r Req) (json.RawMessage, error) {
+			return f(ctx, r)
 		})
-		return rm, err
 	}
 }
 

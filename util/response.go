@@ -30,3 +30,17 @@ func CallTypeWithError[R any](i interface{}, f func(r R) error) error {
 		return ErrParameterInvalidType
 	}
 }
+
+// CallTypeResponseWithError checks and returns the asked type, or an error
+func CallTypeResponseWithError[R any, Response any](i interface{}, f func(r R) (Response, error)) (Response, error) {
+	switch ri := i.(type) {
+	case nil:
+		var rr R
+		return f(rr)
+	case R:
+		return f(ri)
+	default:
+		var resp Response
+		return resp, ErrParameterInvalidType
+	}
+}
