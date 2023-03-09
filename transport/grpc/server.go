@@ -77,5 +77,5 @@ func NewServerStdEnc[Req any, Resp any](
 
 // ServeGRPC implements the Handler interface.
 func (s Server[Req, Resp]) ServeGRPC(ctx context.Context, req interface{}) (retctx context.Context, resp interface{}, err error) {
-	return s.ServeGRPC(ctx, req)
+	return s.server.ServeGRPC(ctx, req)
 }
