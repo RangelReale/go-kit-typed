@@ -17,38 +17,20 @@ type Middleware[Req any, Resp any] func(Endpoint[Req, Resp]) Endpoint[Req, Resp]
 // Adapter is an adapter from a standard go-kit endpoint to the typed version.
 func Adapter[Req any, Resp any](endpoint gokitendpoint.Endpoint) Endpoint[Req, Resp] {
 	return func(ctx context.Context, request Req) (Resp, error) {
-		resp, err := endpoint(ctx, request)
-		if err != nil {
-			var r Resp
-			return r, err
-		}
-
-		switch tr := resp.(type) {
-		case nil:
-			var rr Resp
-			return rr, nil
-		case Resp:
-			return tr, nil
-		default:
-			var rr Resp
-			return rr, util.ErrParameterInvalidType
-		}
+		return util.ReturnTypeWithError[Resp](endpoint(ctx, request))
 	}
 }
 
 // ReverseAdapter is an adapter from a typed endpoint to a standard go-kit version.
 func ReverseAdapter[Req any, Resp any](e Endpoint[Req, Resp]) gokitendpoint.Endpoint {
-	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		switch tr := request.(type) {
-		case nil:
-			var r Req
-			return e(ctx, r)
-		case Req:
-			return e(ctx, tr)
-		default:
-			var r Req
-			return r, util.ErrParameterInvalidType
-		}
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		var resp interface{}
+		err := util.CallTypeWithError[Req](request, func(r Req) error {
+			var callErr error
+			resp, callErr = e(ctx, r)
+			return callErr
+		})
+		return resp, err
 	}
 }
 
