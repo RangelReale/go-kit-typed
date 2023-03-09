@@ -60,11 +60,20 @@ func MiddlewareWrapper[Req any, Resp any](middleware gokitendpoint.Middleware,
 			return endpoint(ctx, mreq.(Req))
 		})
 		resp, err := rmw(ctx, req)
-		if resp != nil {
-			return resp.(Resp), err
+		if err != nil {
+			var r Resp
+			return r, err
 		}
-		var r Resp
-		return r, nil
+		switch rt := resp.(type) {
+		case nil:
+			var r Resp
+			return r, nil
+		case Resp:
+			return rt, nil
+		default:
+			var r Resp
+			return r, util.ErrParameterInvalidType
+		}
 	}
 }
 
