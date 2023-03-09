@@ -32,6 +32,40 @@ func NewServer[Req any, Resp any](
 	}
 }
 
+// NewServerStdReq constructs a new server, which implements http.Handler and wraps
+// the provided endpoint.
+func NewServerStdReq[Req any, Resp any](
+	e endpoint.Endpoint[Req, Resp],
+	dec gokithttptransport.DecodeRequestFunc,
+	enc EncodeResponseFunc[Resp],
+	options ...gokithttptransport.ServerOption,
+) *Server[Req, Resp] {
+	server := gokithttptransport.NewServer(serverEndpointAdapter(e),
+		dec,
+		serverEncodeResponseFuncAdapter(enc),
+		options...)
+	return &Server[Req, Resp]{
+		server: server,
+	}
+}
+
+// NewServerStdResp constructs a new server, which implements http.Handler and wraps
+// the provided endpoint.
+func NewServerStdResp[Req any, Resp any](
+	e endpoint.Endpoint[Req, Resp],
+	dec DecodeRequestFunc[Req],
+	enc gokithttptransport.EncodeResponseFunc,
+	options ...gokithttptransport.ServerOption,
+) *Server[Req, Resp] {
+	server := gokithttptransport.NewServer(serverEndpointAdapter(e),
+		serverDecodeRequestFuncAdapter(dec),
+		enc,
+		options...)
+	return &Server[Req, Resp]{
+		server: server,
+	}
+}
+
 // ServeHTTP implements http.Handler.
 func (s Server[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.server.ServeHTTP(w, r)
