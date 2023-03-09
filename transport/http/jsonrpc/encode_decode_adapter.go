@@ -9,6 +9,17 @@ import (
 	gokitjsonrpctransport "github.com/go-kit/kit/transport/http/jsonrpc"
 )
 
+// MakeEndpointCodec creates a standard EndpointCodec from generic parameters.
+// This is intended to be used when build manually a EndpointCodecMap.
+func MakeEndpointCodec[Req any, Resp any](endpoint endpoint.Endpoint[Req, Resp], dec DecodeRequestFunc[Req],
+	enc EncodeResponseFunc[Resp]) gokitjsonrpctransport.EndpointCodec {
+	return EndpointCodecReverseAdapter(EndpointCodec[Req, Resp]{
+		Endpoint: endpoint,
+		Decode:   dec,
+		Encode:   enc,
+	})
+}
+
 // EndpointCodecAdapter is an adapter from the non-generic EndpointCodec type
 func EndpointCodecAdapter[Req any, Resp any](codec gokitjsonrpctransport.EndpointCodec) EndpointCodec[Req, Resp] {
 	return EndpointCodec[Req, Resp]{

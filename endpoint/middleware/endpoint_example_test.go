@@ -1,10 +1,10 @@
-package endpoint_test
+package middleware_test
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/RangelReale/go-kit-typed/endpoint"
+	"github.com/RangelReale/go-kit-typed/endpoint/middleware"
 	gokitendpoint "github.com/go-kit/kit/endpoint"
 )
 
@@ -15,7 +15,7 @@ func ExampleChainGeneric() {
 		annotate("third"),
 	)
 
-	e := endpoint.MiddlewareWrapper(m, myGenericEndpoint)
+	e := middleware.Wrapper(m, myGenericEndpoint)
 
 	if _, err := e(ctx, "data1"); err != nil {
 		panic(err)
