@@ -95,3 +95,61 @@ func DecodeResponseFuncAdapter[Resp any](f gokithttptransport.DecodeResponseFunc
 		}
 	}
 }
+
+// DecodeRequestFuncReverseAdapter is an adapter tp the non-generic DecodeRequestFunc function
+func DecodeRequestFuncReverseAdapter[Req any](f DecodeRequestFunc[Req]) gokithttptransport.DecodeRequestFunc {
+	return func(ctx context.Context, r *http.Request) (interface{}, error) {
+		return f(ctx, r)
+	}
+}
+
+// EncodeRequestFuncReverseAdapter is an adapter to the non-generic EncodeRequestFunc function
+func EncodeRequestFuncReverseAdapter[Req any](f EncodeRequestFunc[Req]) gokithttptransport.EncodeRequestFunc {
+	return func(ctx context.Context, request *http.Request, i interface{}) error {
+		switch ri := i.(type) {
+		case nil:
+			var r Req
+			return f(ctx, request, r)
+		case Req:
+			return f(ctx, request, ri)
+		default:
+			return util.ErrParameterInvalidType
+		}
+	}
+}
+
+// CreateRequestFuncReverseAdapter is an adapter to the non-generic CreateRequestFunc function
+func CreateRequestFuncReverseAdapter[Req any](f CreateRequestFunc[Req]) gokithttptransport.CreateRequestFunc {
+	return func(ctx context.Context, i interface{}) (*http.Request, error) {
+		switch ri := i.(type) {
+		case nil:
+			var r Req
+			return f(ctx, r)
+		case Req:
+			return f(ctx, ri)
+		default:
+			return nil, util.ErrParameterInvalidType
+		}
+	}
+}
+
+// EncodeResponseFuncReverseAdapter is an adapter to the non-generic EncodeResponseFunc function
+func EncodeResponseFuncReverseAdapter[Resp any](f EncodeResponseFunc[Resp]) gokithttptransport.EncodeResponseFunc {
+	return func(ctx context.Context, w http.ResponseWriter, i interface{}) error {
+		switch ti := i.(type) {
+		case nil:
+			var r Resp
+			return f(ctx, w, r)
+		case Resp:
+			return f(ctx, w, ti)
+		default:
+			return util.ErrParameterInvalidType
+		}
+	}
+}
+
+func DecodeResponseFuncReverseAdapter[Resp any](f DecodeResponseFunc[Resp]) gokithttptransport.DecodeResponseFunc {
+	return func(ctx context.Context, r *http.Response) (interface{}, error) {
+		return f(ctx, r)
+	}
+}

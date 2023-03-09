@@ -1,12 +1,9 @@
 package http
 
 import (
-	"context"
-	"net/http"
 	"net/url"
 
 	"github.com/RangelReale/go-kit-typed/endpoint"
-	"github.com/RangelReale/go-kit-typed/util"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 )
 
@@ -21,8 +18,8 @@ func NewClient[Req any, Resp any](method string, tgt *url.URL, enc EncodeRequest
 	client := gokithttptransport.NewClient(
 		method,
 		tgt,
-		clientEncodeRequestFuncAdapterAdapter(enc),
-		clientDecodeResponseFuncAdapter(dec),
+		EncodeRequestFuncReverseAdapter(enc),
+		DecodeResponseFuncReverseAdapter(dec),
 		options...)
 	return &Client[Req, Resp]{
 		client: client,
@@ -35,7 +32,7 @@ func NewClientStdEnc[Req any, Resp any](method string, tgt *url.URL, enc gokitht
 	client := gokithttptransport.NewClient(method,
 		tgt,
 		enc,
-		clientDecodeResponseFuncAdapter(dec),
+		DecodeResponseFuncReverseAdapter(dec),
 		options...)
 	return &Client[Req, Resp]{
 		client: client,
@@ -48,7 +45,7 @@ func NewClientStdDec[Req any, Resp any](method string, tgt *url.URL, enc EncodeR
 	client := gokithttptransport.NewClient(
 		method,
 		tgt,
-		clientEncodeRequestFuncAdapterAdapter(enc),
+		EncodeRequestFuncReverseAdapter(enc),
 		dec,
 		options...)
 	return &Client[Req, Resp]{
@@ -62,8 +59,8 @@ func NewClientStdDec[Req any, Resp any](method string, tgt *url.URL, enc EncodeR
 func NewExplicitClient[Req any, Resp any](req CreateRequestFunc[Req], dec DecodeResponseFunc[Resp],
 	options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
 	client := gokithttptransport.NewExplicitClient(
-		clientCreateRequestFuncAdapterAdapter(req),
-		clientDecodeResponseFuncAdapter(dec),
+		CreateRequestFuncReverseAdapter(req),
+		DecodeResponseFuncReverseAdapter(dec),
 		options...)
 	return &Client[Req, Resp]{
 		client: client,
@@ -77,7 +74,7 @@ func NewExplicitClientStdCreate[Req any, Resp any](req gokithttptransport.Create
 	options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
 	client := gokithttptransport.NewExplicitClient(
 		req,
-		clientDecodeResponseFuncAdapter(dec),
+		DecodeResponseFuncReverseAdapter(dec),
 		options...)
 	return &Client[Req, Resp]{
 		client: client,
@@ -89,7 +86,7 @@ func NewExplicitClientStdCreate[Req any, Resp any](req gokithttptransport.Create
 // the outgoing HTTP request, using the non-typed decoder.
 func NewExplicitClientStdDec[Req any, Resp any](req CreateRequestFunc[Req], dec gokithttptransport.DecodeResponseFunc,
 	options ...gokithttptransport.ClientOption) *Client[Req, Resp] {
-	client := gokithttptransport.NewExplicitClient(clientCreateRequestFuncAdapterAdapter(req),
+	client := gokithttptransport.NewExplicitClient(CreateRequestFuncReverseAdapter(req),
 		dec,
 		options...)
 	return &Client[Req, Resp]{
@@ -100,38 +97,4 @@ func NewExplicitClientStdDec[Req any, Resp any](req CreateRequestFunc[Req], dec 
 // Endpoint returns a usable Go kit endpoint that calls the remote HTTP endpoint.
 func (c Client[Req, Resp]) Endpoint() endpoint.Endpoint[Req, Resp] {
 	return endpoint.Adapter[Req, Resp](c.client.Endpoint())
-}
-
-func clientEncodeRequestFuncAdapterAdapter[Req any](f EncodeRequestFunc[Req]) gokithttptransport.EncodeRequestFunc {
-	return func(ctx context.Context, request *http.Request, i interface{}) error {
-		switch ri := i.(type) {
-		case nil:
-			var r Req
-			return f(ctx, request, r)
-		case Req:
-			return f(ctx, request, ri)
-		default:
-			return util.ErrParameterInvalidType
-		}
-	}
-}
-
-func clientCreateRequestFuncAdapterAdapter[Req any](f CreateRequestFunc[Req]) gokithttptransport.CreateRequestFunc {
-	return func(ctx context.Context, i interface{}) (*http.Request, error) {
-		switch ri := i.(type) {
-		case nil:
-			var r Req
-			return f(ctx, r)
-		case Req:
-			return f(ctx, ri)
-		default:
-			return nil, util.ErrParameterInvalidType
-		}
-	}
-}
-
-func clientDecodeResponseFuncAdapter[Resp any](f DecodeResponseFunc[Resp]) gokithttptransport.DecodeResponseFunc {
-	return func(ctx context.Context, r *http.Response) (interface{}, error) {
-		return f(ctx, r)
-	}
 }

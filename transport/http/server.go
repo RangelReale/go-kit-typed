@@ -1,11 +1,9 @@
 package http
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/RangelReale/go-kit-typed/endpoint"
-	"github.com/RangelReale/go-kit-typed/util"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 )
 
@@ -24,8 +22,8 @@ func NewServer[Req any, Resp any](
 ) *Server[Req, Resp] {
 	server := gokithttptransport.NewServer(
 		endpoint.ReverseAdapter(e),
-		serverDecodeRequestFuncAdapter(dec),
-		serverEncodeResponseFuncAdapter(enc),
+		DecodeRequestFuncReverseAdapter(dec),
+		EncodeResponseFuncReverseAdapter(enc),
 		options...)
 	return &Server[Req, Resp]{
 		server: server,
@@ -43,7 +41,7 @@ func NewServerStdDec[Req any, Resp any](
 	server := gokithttptransport.NewServer(
 		endpoint.ReverseAdapter(e),
 		dec,
-		serverEncodeResponseFuncAdapter(enc),
+		EncodeResponseFuncReverseAdapter(enc),
 		options...)
 	return &Server[Req, Resp]{
 		server: server,
@@ -60,7 +58,7 @@ func NewServerStdEnc[Req any, Resp any](
 ) *Server[Req, Resp] {
 	server := gokithttptransport.NewServer(
 		endpoint.ReverseAdapter(e),
-		serverDecodeRequestFuncAdapter(dec),
+		DecodeRequestFuncReverseAdapter(dec),
 		enc,
 		options...)
 	return &Server[Req, Resp]{
@@ -71,24 +69,4 @@ func NewServerStdEnc[Req any, Resp any](
 // ServeHTTP implements http.Handler.
 func (s Server[Req, Resp]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.server.ServeHTTP(w, r)
-}
-
-func serverDecodeRequestFuncAdapter[Req any](f DecodeRequestFunc[Req]) gokithttptransport.DecodeRequestFunc {
-	return func(ctx context.Context, r *http.Request) (interface{}, error) {
-		return f(ctx, r)
-	}
-}
-
-func serverEncodeResponseFuncAdapter[Resp any](f EncodeResponseFunc[Resp]) gokithttptransport.EncodeResponseFunc {
-	return func(ctx context.Context, w http.ResponseWriter, i interface{}) error {
-		switch ti := i.(type) {
-		case nil:
-			var r Resp
-			return f(ctx, w, r)
-		case Resp:
-			return f(ctx, w, ti)
-		default:
-			return util.ErrParameterInvalidType
-		}
-	}
 }
