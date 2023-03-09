@@ -64,14 +64,6 @@ func EndpointCodecReverseAdapter[Req any, Resp any](codec EndpointCodec[Req, Res
 	}
 }
 
-// func EndpointCodecMapAdapter[Req any, Resp any](ecm gokitjsonrpctransport.EndpointCodecMap) EndpointCodecMap[Req, Resp] {
-// 	recm := make(EndpointCodecMap[Req, Resp])
-// 	for en, ev := range ecm {
-// 		recm[en] = EndpointCodecAdapter[Req, Resp](ev)
-// 	}
-// 	return recm
-// }
-
 func DecodeRequestFuncAdapter[Req any](f gokitjsonrpctransport.DecodeRequestFunc) DecodeRequestFunc[Req] {
 	return func(ctx context.Context, message json.RawMessage) (Req, error) {
 		req, err := f(ctx, message)
@@ -116,5 +108,25 @@ func EncodeResponseFuncReverseAdapter[Resp any](f EncodeResponseFunc[Resp]) goki
 		default:
 			return nil, util.ErrParameterInvalidType
 		}
+	}
+}
+
+func EncodeRequestFuncReverseAdapter[Req any](f EncodeRequestFunc[Req]) gokitjsonrpctransport.EncodeRequestFunc {
+	return func(ctx context.Context, i interface{}) (json.RawMessage, error) {
+		switch ri := i.(type) {
+		case nil:
+			var r Req
+			return f(ctx, r)
+		case Req:
+			return f(ctx, ri)
+		default:
+			return nil, util.ErrParameterInvalidType
+		}
+	}
+}
+
+func DecodeResponseFuncReverseAdapter[Resp any](f DecodeResponseFunc[Resp]) gokitjsonrpctransport.DecodeResponseFunc {
+	return func(ctx context.Context, response gokitjsonrpctransport.Response) (interface{}, error) {
+		return f(ctx, response)
 	}
 }

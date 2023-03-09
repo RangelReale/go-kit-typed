@@ -1,12 +1,9 @@
 package jsonrpc
 
 import (
-	"context"
-	"encoding/json"
 	"net/url"
 
 	"github.com/RangelReale/go-kit-typed/endpoint"
-	"github.com/RangelReale/go-kit-typed/util"
 	gokithttptransport "github.com/go-kit/kit/transport/http"
 	gokitjsonrpctransport "github.com/go-kit/kit/transport/http/jsonrpc"
 )
@@ -74,7 +71,7 @@ func ClientFinalizer(f gokithttptransport.ClientFinalizerFunc) ClientOption {
 func ClientRequestEncoder[Req any](enc EncodeRequestFunc[Req]) ClientOption {
 	return func(c *clientOptions) {
 		c.options = append(c.options,
-			gokitjsonrpctransport.ClientRequestEncoder(clientEncodeRequestFuncAdapterAdapter(enc)))
+			gokitjsonrpctransport.ClientRequestEncoder(EncodeRequestFuncReverseAdapter(enc)))
 	}
 }
 
@@ -83,7 +80,7 @@ func ClientRequestEncoder[Req any](enc EncodeRequestFunc[Req]) ClientOption {
 func ClientResponseDecoder[Req any](dec DecodeResponseFunc[Req]) ClientOption {
 	return func(c *clientOptions) {
 		c.options = append(c.options,
-			gokitjsonrpctransport.ClientResponseDecoder(clientDecodeResponseFuncAdapter(dec)))
+			gokitjsonrpctransport.ClientResponseDecoder(DecodeResponseFuncReverseAdapter(dec)))
 	}
 }
 
@@ -100,24 +97,4 @@ func ClientRequestIDGenerator(g gokitjsonrpctransport.RequestIDGenerator) Client
 // to be read from later. Useful for transporting a file as a buffered stream.
 func BufferedStream(buffered bool) ClientOption {
 	return func(c *clientOptions) { c.options = append(c.options, gokitjsonrpctransport.BufferedStream(buffered)) }
-}
-
-func clientEncodeRequestFuncAdapterAdapter[Req any](f EncodeRequestFunc[Req]) gokitjsonrpctransport.EncodeRequestFunc {
-	return func(ctx context.Context, i interface{}) (json.RawMessage, error) {
-		switch ri := i.(type) {
-		case nil:
-			var r Req
-			return f(ctx, r)
-		case Req:
-			return f(ctx, ri)
-		default:
-			return nil, util.ErrParameterInvalidType
-		}
-	}
-}
-
-func clientDecodeResponseFuncAdapter[Resp any](f DecodeResponseFunc[Resp]) gokitjsonrpctransport.DecodeResponseFunc {
-	return func(ctx context.Context, response gokitjsonrpctransport.Response) (interface{}, error) {
-		return f(ctx, response)
-	}
 }
