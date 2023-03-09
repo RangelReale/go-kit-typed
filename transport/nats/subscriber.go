@@ -29,6 +29,42 @@ func NewSubscriber[Req any, Resp any](
 	}
 }
 
+// NewSubscriberStdDec constructs a new subscriber, which provides nats.MsgHandler and wraps
+// the provided endpoint, using the non-typed decoder.
+func NewSubscriberStdDec[Req any, Resp any](
+	e endpoint.Endpoint[Req, Resp],
+	dec gokitnatstransport.DecodeRequestFunc,
+	enc EncodeResponseFunc[Resp],
+	options ...gokitnatstransport.SubscriberOption,
+) *Subscriber[Req, Resp] {
+	subscriber := gokitnatstransport.NewSubscriber(
+		endpoint.ReverseAdapter(e),
+		dec,
+		EncodeResponseFuncReverseAdapter(enc),
+		options...)
+	return &Subscriber[Req, Resp]{
+		subscriber: subscriber,
+	}
+}
+
+// NewSubscriberStdEnc constructs a new subscriber, which provides nats.MsgHandler and wraps
+// the provided endpoint, using the non-typed encoder.
+func NewSubscriberStdEnc[Req any, Resp any](
+	e endpoint.Endpoint[Req, Resp],
+	dec DecodeRequestFunc[Req],
+	enc gokitnatstransport.EncodeResponseFunc,
+	options ...gokitnatstransport.SubscriberOption,
+) *Subscriber[Req, Resp] {
+	subscriber := gokitnatstransport.NewSubscriber(
+		endpoint.ReverseAdapter(e),
+		DecodeRequestFuncReverseAdapter(dec),
+		enc,
+		options...)
+	return &Subscriber[Req, Resp]{
+		subscriber: subscriber,
+	}
+}
+
 // ServeMsg provides nats.MsgHandler.
 func (s Subscriber[Req, Resp]) ServeMsg(nc *nats.Conn) func(msg *nats.Msg) {
 	return s.subscriber.ServeMsg(nc)
