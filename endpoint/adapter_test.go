@@ -99,3 +99,21 @@ func TestReverseAdapter(t *testing.T) {
 		}
 	}
 }
+
+func TestCast(t *testing.T) {
+	var err error
+	var e Endpoint[int, int]
+
+	// Cast is a compile-time function, this just tests that the code compiles
+	e = Cast(e, func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		return request.(int) + 2, nil
+	})
+
+	resp, err := e(context.Background(), 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp != 7 {
+		t.Errorf("want %d, have %d", 7, resp)
+	}
+}
