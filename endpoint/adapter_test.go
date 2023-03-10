@@ -11,15 +11,16 @@ import (
 )
 
 func TestAdapter(t *testing.T) {
+	errTest := errors.New("test")
+
 	tests := []struct {
-		f           gokitendpoint.Endpoint
-		expected    string
-		isTypeError bool
+		f        gokitendpoint.Endpoint
+		expected string
+		error    error
 	}{
 		{
 			f: func(ctx context.Context, request interface{}) (interface{}, error) {
 				return fmt.Sprintf("str-%v", request), nil
-
 			},
 			expected: "str-data",
 		},
@@ -27,7 +28,7 @@ func TestAdapter(t *testing.T) {
 			f: func(ctx context.Context, request interface{}) (interface{}, error) {
 				return 12, nil
 			},
-			isTypeError: true,
+			error: util.ErrParameterInvalidType,
 		},
 		{
 			f: func(ctx context.Context, request interface{}) (interface{}, error) {
@@ -35,13 +36,19 @@ func TestAdapter(t *testing.T) {
 			},
 			expected: "",
 		},
+		{
+			f: func(ctx context.Context, request interface{}) (interface{}, error) {
+				return nil, errTest
+			},
+			error: errTest,
+		},
 	}
 
 	for _, test := range tests {
 		resp, err := Adapter[string, string](test.f)(context.Background(), "data")
-		if test.isTypeError {
-			if !errors.Is(err, util.ErrParameterInvalidType) {
-				t.Fatalf("expected ErrParameterInvalidType got %v", err)
+		if test.error != nil {
+			if !errors.Is(err, test.error) {
+				t.Fatalf("expected '%v' got '%v'", test.error, err)
 			}
 		} else {
 			if err != nil {
@@ -55,9 +62,12 @@ func TestAdapter(t *testing.T) {
 }
 
 func TestReverseAdapter(t *testing.T) {
+	errTest := errors.New("test")
+
 	tests := []struct {
 		f        Endpoint[string, string]
 		expected string
+		error    error
 	}{
 		{
 			f: func(ctx context.Context, request string) (string, error) {
@@ -65,15 +75,27 @@ func TestReverseAdapter(t *testing.T) {
 			},
 			expected: "str-data",
 		},
+		{
+			f: func(ctx context.Context, request string) (string, error) {
+				return "", errTest
+			},
+			error: errTest,
+		},
 	}
 
 	for _, test := range tests {
 		resp, err := ReverseAdapter[string, string](test.f)(context.Background(), "data")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if resp != test.expected {
-			t.Errorf("want %s, have %s", test.expected, resp)
+		if test.error != nil {
+			if !errors.Is(err, test.error) {
+				t.Fatalf("expected '%v' got '%v'", test.error, err)
+			}
+		} else {
+			if err != nil {
+				t.Fatal(err)
+			}
+			if resp != test.expected {
+				t.Errorf("want %s, have %s", test.expected, resp)
+			}
 		}
 	}
 }
