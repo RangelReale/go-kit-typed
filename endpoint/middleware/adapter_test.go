@@ -74,7 +74,7 @@ func TestMiddlewareAdapter(t *testing.T) {
 		buf := strings.Builder{}
 		e := test.f(&buf)
 
-		resp, err := e(ctx, "data")
+		resp, err := e(context.Background(), "data")
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
