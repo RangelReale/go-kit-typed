@@ -11,107 +11,81 @@ import (
 	gokitendpoint "github.com/go-kit/kit/endpoint"
 )
 
-func TestAdapter(t *testing.T) {
-	buf := strings.Builder{}
+func TestMiddlewareAdapter(t *testing.T) {
+	tests := []struct {
+		f func(buf *strings.Builder) endpoint.Endpoint[string, string]
+	}{
+		{
+			// Adapter
+			f: func(buf *strings.Builder) endpoint.Endpoint[string, string] {
+				var e endpoint.Endpoint[string, string]
+				{
+					e = strendpoint(buf)
+					e = middleware.Adapter[string, string](strmiddleware("third", buf))(e)
+					e = middleware.Adapter[string, string](strmiddleware("second", buf))(e)
+					e = middleware.Adapter[string, string](strmiddleware("first", buf))(e)
+				}
+				return e
+			},
+		},
+		{
+			// Adapter chain
+			f: func(buf *strings.Builder) endpoint.Endpoint[string, string] {
+				m := gokitendpoint.Chain(
+					strmiddleware("first", buf),
+					strmiddleware("second", buf),
+					strmiddleware("third", buf),
+				)
 
-	var e endpoint.Endpoint[string, string]
-	{
-		e = strendpoint(&buf)
-		e = middleware.Adapter[string, string](strmiddleware("third", &buf))(e)
-		e = middleware.Adapter[string, string](strmiddleware("second", &buf))(e)
-		e = middleware.Adapter[string, string](strmiddleware("first", &buf))(e)
+				return middleware.Adapter[string, string](m)(strendpoint(buf))
+			},
+		},
+		{
+			// Wrapper
+			f: func(buf *strings.Builder) endpoint.Endpoint[string, string] {
+				var e endpoint.Endpoint[string, string]
+				{
+					e = strendpoint(buf)
+					e = middleware.Wrapper(strmiddleware("third", buf), e)
+					e = middleware.Wrapper(strmiddleware("second", buf), e)
+					e = middleware.Wrapper(strmiddleware("first", buf), e)
+				}
+				return e
+			},
+		},
+		{
+			// wrapper chain
+			f: func(buf *strings.Builder) endpoint.Endpoint[string, string] {
+				m := gokitendpoint.Chain(
+					strmiddleware("first", buf),
+					strmiddleware("second", buf),
+					strmiddleware("third", buf),
+				)
+
+				return middleware.Wrapper(m, strendpoint(buf))
+			},
+		},
 	}
 
-	resp, err := e(ctx, "data")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if resp != "endpoint-response" {
-		t.Errorf("want %s, have %s", "endpoint-response", resp)
-	}
-
+	expectedResp := "endpoint-response"
 	expected := "|pre-first|pre-second|pre-third|endpoint-data|post-third|post-second|post-first"
-	if buf.String() != expected {
-		t.Errorf("want '%s', have '%s'", expected, buf.String())
-	}
-}
 
-func TestAdapterChain(t *testing.T) {
-	buf := strings.Builder{}
+	for _, test := range tests {
+		buf := strings.Builder{}
+		e := test.f(&buf)
 
-	m := gokitendpoint.Chain(
-		strmiddleware("first", &buf),
-		strmiddleware("second", &buf),
-		strmiddleware("third", &buf),
-	)
+		resp, err := e(ctx, "data")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 
-	e := middleware.Adapter[string, string](m)(strendpoint(&buf))
+		if resp != expectedResp {
+			t.Errorf("want %s, have %s", expectedResp, resp)
+		}
 
-	resp, err := e(ctx, "data")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if resp != "endpoint-response" {
-		t.Errorf("want %s, have %s", "endpoint-response", resp)
-	}
-
-	expected := "|pre-first|pre-second|pre-third|endpoint-data|post-third|post-second|post-first"
-	if buf.String() != expected {
-		t.Errorf("want '%s', have '%s'", expected, buf.String())
-	}
-}
-
-func TestWrapper(t *testing.T) {
-	buf := strings.Builder{}
-
-	var e endpoint.Endpoint[string, string]
-	{
-		e = strendpoint(&buf)
-		e = middleware.Wrapper(strmiddleware("third", &buf), e)
-		e = middleware.Wrapper(strmiddleware("second", &buf), e)
-		e = middleware.Wrapper(strmiddleware("first", &buf), e)
-	}
-
-	resp, err := e(ctx, "data")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if resp != "endpoint-response" {
-		t.Errorf("want %s, have %s", "endpoint-response", resp)
-	}
-
-	expected := "|pre-first|pre-second|pre-third|endpoint-data|post-third|post-second|post-first"
-	if buf.String() != expected {
-		t.Errorf("want '%s', have '%s'", expected, buf.String())
-	}
-}
-
-func TestWrapperChain(t *testing.T) {
-	buf := strings.Builder{}
-
-	m := gokitendpoint.Chain(
-		strmiddleware("first", &buf),
-		strmiddleware("second", &buf),
-		strmiddleware("third", &buf),
-	)
-
-	e := middleware.Wrapper(m, strendpoint(&buf))
-
-	resp, err := e(ctx, "data")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if resp != "endpoint-response" {
-		t.Errorf("want %s, have %s", "endpoint-response", resp)
-	}
-
-	expected := "|pre-first|pre-second|pre-third|endpoint-data|post-third|post-second|post-first"
-	if buf.String() != expected {
-		t.Errorf("want '%s', have '%s'", expected, buf.String())
+		if buf.String() != expected {
+			t.Errorf("want '%s', have '%s'", expected, buf.String())
+		}
 	}
 }
 
